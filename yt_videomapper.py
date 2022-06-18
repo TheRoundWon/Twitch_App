@@ -40,6 +40,14 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.upload", 'https://www.googlea
 # Code that initiates connection to the Google API - pulled from Google.py. Difference from using Google's built-in service is the following script creates convenience of storing pickle with necessary authentication
 service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
 
+def completePlaylist(playlist, default_mode = 'default'):
+    default = playlist['snippet']['thumbnails'][default_mode]
+    checks = ['default', 'medium', 'high', 'standard']
+    for chck in checks:
+        if not bool(playlist['snippet']['thumbnails'].get(chck)):
+            playlist['snippet']['thumbnails'][chck] = default
+    return playlist
+
 def main(engine, service):
     # First pull all created playlists - videos should be mapped to playlists or a search will be required which is a more complicated operation
     playlists = service.playlists().list(part='id,snippet,status', channelId=os.environ['YT_CHANNEL_ID']).execute()
@@ -47,6 +55,7 @@ def main(engine, service):
     shorts_pattern = f"[sS]hort" # check for YT short videos
     with Session(engine) as session: # initialize session to sql using context manager
         for playlist in playlists['items']: # loop through the differen playlists
+            playlist = completePlaylist(playlist)
             for key, thumbnail in playlist['snippet']['thumbnails'].items(): # first ensure that thumbnails are mapped in thumbnail table
                 if not bool(session.query(Thumbnails.id).where(Thumbnails.asset == thumbnail['url']).first()):
                     session.add(Thumbnails(asset=thumbnail['url'], width = thumbnail['width'], height=thumbnail['height']))
@@ -55,8 +64,8 @@ def main(engine, service):
                 playlist['snippet']['thumbnails'][key]['id'] = session.query(Thumbnails.id).where(Thumbnails.asset == thumbnail['url']).first()[0]
 
             # if the playlist id is not in the table, add it
-            if not bool(session.query(PlayList).where(PlayList.id == playlist['id']).first()):
-                session.add(PlayList(id=playlist['id'], title=playlist['snippet']['title'], 
+            if not bool(session.query(PlayList_yt).where(PlayList_yt.id == playlist['id']).first()):
+                session.add(PlayList_yt(id=playlist['id'], title=playlist['snippet']['title'], 
                 tb_default = playlist['snippet']['thumbnails']['default']['id'], 
                 tb_medium = playlist['snippet']['thumbnails']['medium']['id'],
                 tb_high = playlist['snippet']['thumbnails']['high']['id'], 
@@ -67,7 +76,7 @@ def main(engine, service):
             # else, update the table with the current values if it's already in the table - this is to capture if thumbnails or titles have changed
             else:
                 session.execute(
-                    update(PlayList).where(PlayList.id == playlist['id']).values(dict(title=playlist['snippet']['title'], 
+                    update(PlayList_yt).where(PlayList_yt.id == playlist['id']).values(dict(title=playlist['snippet']['title'], 
                 tb_default = playlist['snippet']['thumbnails']['default']['id'], 
                 tb_medium = playlist['snippet']['thumbnails']['medium']['id'],
                 tb_high = playlist['snippet']['thumbnails']['high']['id'], 
@@ -105,15 +114,14 @@ def main(engine, service):
                                 session.add(Thumbnails(asset=thumbnail['url'], width = thumbnail['width'], height=thumbnail['height']))
                                 session.commit()
                             video['snippet']['thumbnails'][key]['id'] = session.query(Thumbnails.id).where(Thumbnails.asset == thumbnail['url']).first()[0]
-                        # VideoID is not in the YT_Video table - add it!    
-                        if not bool(session.query(YT_Video).where(YT_Video.id == video['snippet']['resourceId']['videoId']).first()):
-                            session.add( YT_Video(id = video['snippet']['resourceId']['videoId'], 
+                        # VideoID is not in the Video_yt table - add it!    
+                        if not bool(session.query(Video_yt).where(Video_yt.id == video['snippet']['resourceId']['videoId']).first()):
+                            session.add( Video_yt(id = video['snippet']['resourceId']['videoId'], 
                             clip_id=clip_id, 
                             title = title,
                             filename = filename,
                             style = style,
                             description = description,
-                            playlist_id = playlist['id'],
                             tb_default = video['snippet']['thumbnails']['default']['id'], 
                             tb_medium = video['snippet']['thumbnails']['medium']['id'],
                             tb_high = video['snippet']['thumbnails']['high']['id'], 
@@ -126,14 +134,13 @@ def main(engine, service):
                         # If it's already in there, update our record of current descriptiption / thumbnails.
                         else:
                             session.execute(
-                                update(YT_Video).where(YT_Video.id == video['snippet']['resourceId']['videoId']).values(
+                                update(Video_yt).where(Video_yt.id == video['snippet']['resourceId']['videoId']).values(
                                     dict(
                                         clip_id=clip_id, 
                                         title = title,
                                         filename = filename,
                                         style = style,
                                         description = description,
-                                        playlist_id = playlist['id'],
                                         tb_default = video['snippet']['thumbnails']['default']['id'], 
                                         tb_medium = video['snippet']['thumbnails']['medium']['id'],
                                         tb_high = video['snippet']['thumbnails']['high']['id'], 
@@ -143,17 +150,20 @@ def main(engine, service):
                                 )
                                 )
                             session.commit()
+                        if not bool(session.query(yt_vid_pl_mapper).where(yt_vid_pl_mapper.c.yt_video_id == video['snippet']['resourceId']['videoId']).where(yt_vid_pl_mapper.c.yt_playlist_id ==playlist['id']).first()):
+                            session.execute(insert(yt_vid_pl_mapper).values({"yt_playlist_id": playlist['id'], 'yt_video_id': video['snippet']['resourceId']['videoId']}))
+
 
             # Next, check whether clips have been published by checking them vs the YT table
             for clip_id in session.query(Clip_Tracker.id).where(Clip_Tracker.published == None):
                 # query where we count number of videos with each clip_id
-                for title, style in session.query(YT_Video.title, YT_Video.style).where(YT_Video.clip_id == clip_id[0]).group_by(YT_Video.title).having(func.count(YT_Video.style) == 2).all():
+                for title, style in session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).group_by(Video_yt.title).having(func.count(Video_yt.style) == 2).all():
                     if bool(title): # If there is a title for a query with 2 counts, then we update the video as f
                         session.query(Clip_Tracker).where(Clip_Tracker == clip_id[0]).update({'published': PublishingStatus.f})
                         session.commit()
                         print(title, style)
                 # queries with 1 count, determine if mobile or short has been uploaded - design script to catch up videos with only one type of publishing complete.
-                for title, style in session.query(YT_Video.title, YT_Video.style).where(YT_Video.clip_id == clip_id[0]).group_by(YT_Video.title).having(func.count(YT_Video.style) == 1).all():
+                for title, style in session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).group_by(Video_yt.title).having(func.count(Video_yt.style) == 1).all():
                     if bool(title) and style.name == "f":
                         session.query(Clip_Tracker).where(Clip_Tracker == clip_id[0]).update({'published': PublishingStatus.d})
                         session.commit()
@@ -163,5 +173,6 @@ def main(engine, service):
                 
 if __name__ == "__main__":
     main(engine, service)
+    print('All Done!')
 
 

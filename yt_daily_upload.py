@@ -62,7 +62,7 @@ def createDescription(game_title, channel_id, clip_creator, console, twitch_chan
        
     tagString = " ".join(tags)+"\n"
     game_string = f"Game play Footage from {game_title}\n"
-    thank_string = f"Big Thanks to the {clip_creator} for capturing the footage!\n\n"
+    thank_string = f"Big Thanks to {clip_creator} for capturing the footage!\n\n"
     subscribe_string = f"Subscribe to get notified of new videos:\nhttps://www.youtube.com/channel/{channel_id}?sub_confirmation=1"
     return intro_string+twitch_url+clip_url+tagString+game_string+thank_string+subscribe_string
 
@@ -96,7 +96,7 @@ def main(engine, service, args):
                 # pause after upload
                 print("Normal Upload complete", clip_title)
                 time.sleep(5)
-                playlistId = session.query(PlayList.id).where(PlayList.title.ilike(f'%{game_title}%')).first()[0]
+                playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%{game_title}%')).first()[0]
                 service.playlistItems().insert(part = "snippet", body = {"snippet": {'playlistId': playlistId, 'resourceId': {'videoId': normal_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
 
                 #upload the short
@@ -108,7 +108,7 @@ def main(engine, service, args):
                     media_body=mediaFile
                 ).execute()
                 time.sleep(5)
-                playlistId = session.query(PlayList.id).where(PlayList.title.ilike(f'%short%')).first()[0]
+                playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%short%')).first()[0]
                 service.playlistItems().insert(part = 'snippet', body = {"snippet": {'playlistId': playlistId, 'resourceId': {'videoId': mobile_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
                 session.execute(update(Clip_Tracker).where(Clip_Tracker.id == clip_id).values({'published' : PublishingStatus.f}))
                 session.commit()

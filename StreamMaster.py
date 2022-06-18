@@ -154,6 +154,41 @@ class PlayList(Base):
     tb_high = Column(Integer, ForeignKey("thumbnail_mapper.id"))
     tb_standard = Column(Integer, ForeignKey("thumbnail_mapper.id"))
 
+class PlayList_yt(Base):
+    __tablename__ = "yt_playlists"
+    id = Column(String(255), primary_key=True) # yt playlist id
+    title = Column(String(255))
+    tb_default = Column(Integer, ForeignKey("thumbnail_mapper.id"))
+    tb_medium = Column(Integer, ForeignKey("thumbnail_mapper.id"))
+    tb_high = Column(Integer, ForeignKey("thumbnail_mapper.id"))
+    tb_standard = Column(Integer, ForeignKey("thumbnail_mapper.id"))
+
+
+
+
+class Video_yt(Base):
+    __tablename__ = "yt_videos"
+    id = Column(String(255), primary_key=True) # yt video id
+    clip_id = Column(String(255), ForeignKey("clip_tracker.id"), nullable=True)
+    title = Column(String(255))
+    filename = Column(String(255))
+    style = Column(Enum(VideoStyle))
+    description = Column(String(5000))
+    tb_default = Column(Integer, ForeignKey("thumbnail_mapper.id"))
+    tb_medium = Column(Integer, ForeignKey("thumbnail_mapper.id"))
+    tb_high = Column(Integer, ForeignKey("thumbnail_mapper.id"))
+    tb_standard = Column(Integer, ForeignKey("thumbnail_mapper.id"))
+    tags = Column(String(255))
+
+
+yt_vid_pl_mapper = Table(
+    "yt_video_playlist_mapper",
+    Base.metadata,
+    Column('yt_playlist_id', ForeignKey('yt_playlists.id')),
+    Column('yt_video_id', ForeignKey('yt_videos.id') )
+)
+
+
 
 class YT_Video(Base):
     __tablename__ = "yt_video_mapper"
@@ -169,7 +204,6 @@ class YT_Video(Base):
     tb_high = Column(Integer, ForeignKey("thumbnail_mapper.id"))
     tb_standard = Column(Integer, ForeignKey("thumbnail_mapper.id"))
     tags = Column(String(255))
-
 
 class Thumbnails(Base):
     __tablename__= "thumbnail_mapper"

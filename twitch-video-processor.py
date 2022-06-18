@@ -6,7 +6,7 @@ from twitchAPI.types import AuthScope
 import pandas as pd
 import numpy as np
 import subprocess
-import cv2
+# import cv2
 import uuid
 from moviepy.editor import *
 import moviepy.video as mpy
