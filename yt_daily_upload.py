@@ -96,8 +96,9 @@ def main(engine, service, args):
                 # pause after upload
                 print("Normal Upload complete", clip_title)
                 time.sleep(5)
-                playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%{game_title}%')).first()[0]
-                service.playlistItems().insert(part = "snippet", body = {"snippet": {'playlistId': playlistId, 'resourceId': {'videoId': normal_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
+                normal_playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%{game_title}%')).first()[0]
+                service.playlistItems().insert(part = "snippet", body = {"snippet": {'playlistId': normal_playlistId, 'resourceId': {'videoId': normal_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
+                
 
                 #upload the short
                 request_body['description'] = createDescription(game_title, os.environ['YT_CHANNEL_ID'], clip_creator, console, os.environ['CHANNEL'], clip_url, mode='shorts')
@@ -108,10 +109,16 @@ def main(engine, service, args):
                     media_body=mediaFile
                 ).execute()
                 time.sleep(5)
-                playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%short%')).first()[0]
-                service.playlistItems().insert(part = 'snippet', body = {"snippet": {'playlistId': playlistId, 'resourceId': {'videoId': mobile_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
+                mobile_playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%short%')).first()[0]
+                service.playlistItems().insert(part = 'snippet', body = {"snippet": {'playlistId': mobile_playlistId, 'resourceId': {'videoId': mobile_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
+                
                 session.execute(update(Clip_Tracker).where(Clip_Tracker.id == clip_id).values({'published' : PublishingStatus.f}))
                 session.commit()
+                with Session(engine) as session:
+                    session.execute(insert(yt_vid_pl_mapper).values({"yt_playlist_id": mobile_playlistId, 'yt_video_id': mobile_response_upload.get('id')}))
+                    session.execute(insert(yt_vid_pl_mapper).values({"yt_playlist_id": normal_playlistId, 'yt_video_id': normal_response_upload.get('id')}))
+                    session.commit()
+
 
             except Exception as e:
                 print("Upload failed", clip_title, e)
