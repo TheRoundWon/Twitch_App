@@ -25,6 +25,23 @@ class HiddenPrints:
         sys.stdout.close()
         sys.stdout = self._original_stdout
 
+def createDescription(game_title, channel_id, clip_creator, console, twitch_channel, clip_url, tag_seed = ['videogames', 'followme', 'twitch', 'casualplay', 'TheRoundWon'], mode = None):
+    
+    if clip_creator == "TheRoundWon":
+        clip_creator = "TheSquareWon"
+    intro_string = "Follow me on Twitch for weekly live gameplay\n"
+    twitch_url = f"https://twitch.tv/{twitch_channel}\n"
+    clip_url = f"Check out the original clip on Twitch! {clip_url}\n\n"
+    tags = ["#"+game_title.replace(" ", "").replace("'", "")] + ['#'+sd for sd in tag_seed]  + ["#"+console]
+    if mode == "Shorts" or mode == "shorts":
+        tags = tags + ["#"+mode] 
+       
+    tagString = " ".join(tags)+"\n"
+    game_string = f"Game play Footage from {game_title}\n"
+    thank_string = f"Big Thanks to {clip_creator} for capturing the footage!\n\n"
+    subscribe_string = f"Subscribe to get notified of new videos:\nhttps://www.youtube.com/channel/{channel_id}?sub_confirmation=1"
+    return intro_string+twitch_url+clip_url+tagString+game_string+thank_string+subscribe_string
+
 
 class PublishingStatus(enum.Enum):
     """Enumeration Type for Publishing status
