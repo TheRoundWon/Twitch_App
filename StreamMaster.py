@@ -1,3 +1,6 @@
+""" The Following script contains the SQL Alchemy ORMs intended for creating tables in designaed MYSQL Database
+"""
+
 from sqlalchemy import *
 from sqlalchemy.orm import declarative_base, relationship, Session, aliased
 from datetime import datetime, timedelta, date

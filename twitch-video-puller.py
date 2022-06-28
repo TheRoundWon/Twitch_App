@@ -1,5 +1,6 @@
 """ Check Associated iPython Notebook for better documentation - the following
-script is designed to be run from on a schedule
+script is designed to be run on a schedule (ideally daily) where the script checks for the newest clips created for a channel and downloads them to the appropriate locations
+specified in the .env file
 """
 #Import necessary packages
 import os
