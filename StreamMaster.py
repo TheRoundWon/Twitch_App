@@ -37,9 +37,9 @@ class PublishingStatus(enum.Enum):
     f = full
 
     """
-    m = 1
-    d = 2
-    f = 3
+    m = 1 # Mobile only
+    d = 2 # Desktop only
+    f = 3 # Full complete
 
 
 class Clip_Tracker(Base):
@@ -145,8 +145,8 @@ schema_mapper = {
 
 
 class VideoStyle(enum.Enum):
-    m = 1
-    f = 2
+    m = 1 # mobile
+    f = 2 # fullscreen video
 
 class PlayList(Base):
     __tablename__ = "yt_playlist_mapper"

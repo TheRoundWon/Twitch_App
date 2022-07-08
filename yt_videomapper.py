@@ -192,29 +192,24 @@ def main(engine, service):
                 except Exception as e:
                     if video.get('snippet')['title'] != 'Deleted video':
                         print(video, e)
+            # End loop
 
 
-            # Next, check whether clips have been published by checking them vs the YT table
-            for clip_id in session.query(Clip_Tracker.id).where(Clip_Tracker.published == None):
-                # query where we count number of videos with each clip_id
-                for title, style in session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).group_by(Video_yt.title).having(func.count(Video_yt.style) == 2).all():
-                    if bool(title): # If there is a title for a query with 2 counts, then we update the video as f
-                        session.query(Clip_Tracker).where(Clip_Tracker == clip_id[0]).update({'published': PublishingStatus.f})
-                        session.commit()
-                # queries with 1 count, determine if mobile or short has been uploaded - design script to catch up videos with only one type of publishing complete.
-                for title, style in session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).group_by(Video_yt.title).having(func.count(Video_yt.style) == 1).all():
-                    if bool(title) and style.name == "f":
-                        session.query(Clip_Tracker).where(Clip_Tracker == clip_id[0]).update({'published': PublishingStatus.d})
-                        session.commit()
-                    else:
-                        session.query(Clip_Tracker).where(Clip_Tracker == clip_id[0]).update({'published': PublishingStatus.m})
-                        session.commit()
+        # Next, check whether clips have been published by checking them vs the YT table
 
-            # The following updates the Clip_Tracker table publishing status if the necessary tables are missing
-            for clip_id in session.query(Clip_Tracker.id).where(Clip_Tracker.published == PublishingStatus.f).all():
-                rows = session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).all()
-                if len(rows) < 2 and bool(rows):
-                    session.query(Clip_Tracker).where(Clip_Tracker.id == clip_id[0]).update(values = {'published': invers_mapper[rows[0][1]]})
+        for clip_id in session.query(Clip_Tracker.id).all():
+            # query where we count number of videos with each clip_id
+            for title, style in session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).group_by(Video_yt.title).having(func.count(Video_yt.style) == 2).all():
+                if bool(title): # If there is a title for a query with 2 counts, then we update the video as f
+                    session.query(Clip_Tracker).where(Clip_Tracker.id == clip_id[0]).update({'published': PublishingStatus.f})
+                    session.commit()
+            # queries with 1 count, determine if mobile or short has been uploaded - design script to catch up videos with only one type of publishing complete.
+            for title, style in session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).group_by(Video_yt.title).having(func.count(Video_yt.style) == 1).all():
+                if bool(title) and style.name == "f":
+                    session.query(Clip_Tracker).where(Clip_Tracker.id == clip_id[0]).update({'published': PublishingStatus.d})
+                    session.commit()
+                else:
+                    session.query(Clip_Tracker).where(Clip_Tracker.id == clip_id[0]).update({'published': PublishingStatus.m})
                     session.commit()
 
                 

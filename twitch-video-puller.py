@@ -147,9 +147,12 @@ def main():
 
         # Download the undownloaded videos
         for video_name, url, ID in session.query(Clip_Tracker.video_name, Clip_Tracker.url, Clip_Tracker.id).where(Clip_Tracker.downloaded == False).all():
-            subprocess.call(['twitch-dl', 'download', '-q', 'source', url, '-o', os.path.join(clips_folder, video_name)])
-            session.execute(update(Clip_Tracker).where(Clip_Tracker.id == ID).values(downloaded=True))
-            session.commit()
+            try:
+                subprocess.call(['twitch-dl', 'download', '-q', 'source', url, '-o', os.path.join(clips_folder, video_name)])
+                session.execute(update(Clip_Tracker).where(Clip_Tracker.id == ID).values(downloaded=True))
+                session.commit()
+            except Exception as e:
+                print(url)
         print("All Done!")
 
 if __name__ == "__main__":
