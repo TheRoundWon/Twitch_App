@@ -10,6 +10,11 @@ The .env file will be required to configure the connection necessary for the orm
 The repository is called "Twitch_App" but covers projects that interact with both YouTube and Twitch.
 
 
+## Requirements
+
+The following script utilizes [FFMPEG](https://ffmpeg.org) and requires that it be installed <h2> First </h2> before installing the requirements of this repository. FFMPEG now handles video editting as it's far more performant than movie.py in terms of speed and quality.
+
+
 
 ## Structure of Repository
 <i>I run  the following scripts daily using crontab -e</i>
@@ -19,7 +24,7 @@ python3 twitch-video-puller.py
 ```
  * Algo Notes - Scales in O(N) where N = # of clips. Typical run time to process 10 clips is around 30 seconds
 
-- twitch-video-processor.py - handles the post-processing required for youtube uploads. The video processing script can incorporate a logo into your twitch clip as well as resize the clip to be YT shorts friendly. Since we are using a pyscript - very slow and not optimal render quality. This process wil likely be migraited to a script which can ensure better video fidelity and processing time. 
+- twitch-video-processor.py - handles the post-processing required for youtube uploads. The video processing script can incorporate a logo into your twitch clip as well as resize the clip to be YT shorts friendly. Now that we are using ffmpeg to handle our video processing ()
 
 ```
 python3 twitch-video-puller.py <int: default 5> 

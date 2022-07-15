@@ -87,7 +87,7 @@ def main(engine, service, args):
                         },
                         'notifySubscribers': True
                     }
-                mediaFile = MediaFileUpload(os.path.join(clips_folder, video_name))
+                mediaFile = MediaFileUpload(os.path.join(fullscreen_folder, video_name))
                 normal_response_upload = service.videos().insert(
                     part='snippet,status',
                     body=request_body,

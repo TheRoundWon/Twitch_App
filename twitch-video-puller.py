@@ -88,7 +88,8 @@ def main():
                     session.add(Clip_Tracker(**item))
                     session.commit()
                 else:
-                    pass
+                    session.execute(update(Clip_Tracker).where(Clip_Tracker.id == item['id']).values(view_count=item['view_count']))
+                    session.commit()
         while bool(seed['pagination']): # Loop for remaining pages
             nextPage = seed['pagination']['cursor']
             seed = twitch.get_clips(os.environ['TWITCH_CHANNEL_ID'], after=nextPage)
