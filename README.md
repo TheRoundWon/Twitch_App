@@ -24,7 +24,7 @@ python3 twitch-video-puller.py
 ```
  * Algo Notes - Scales in O(N) where N = # of clips. Typical run time to process 10 clips is around 30 seconds
 
-- twitch-video-processor.py - handles the post-processing required for youtube uploads. The video processing script can incorporate a logo into your twitch clip as well as resize the clip to be YT shorts friendly. Now that we are using ffmpeg to handle our video processing ()
+- twitch-video-processor.py - handles the post-processing required for youtube uploads. The video processing script can incorporate a logo into your twitch clip as well as resize the clip to be YT shorts friendly. Now that we are using ffmpeg to handle our video editting, processing time is down from ~45 average / clip to less than 2 minutes (closer to 1 minute) using an old MacBook Pro and suffers to quality degradation from editting.
 
 ```
 python3 twitch-video-puller.py <int: default 5> 
