@@ -47,4 +47,4 @@ def main(engine, service):
                 print("Upload failed", clip_title, e)
 
 if __name__ == "__main__":
-    main(engine, service)
+    main(mysql_engine, service)

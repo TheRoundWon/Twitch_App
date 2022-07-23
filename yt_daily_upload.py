@@ -69,7 +69,7 @@ def createDescription(game_title, channel_id, clip_creator, console, twitch_chan
 
 def main(engine, service, args):
     with Session(engine)as session:
-        for clip_id, game_title, clip_creator, console, clip_title, video_name, clip_url in session.query(Clip_Tracker.id, Game_Meta.game_name, Clip_Tracker.creator_name, Game_Meta.platform, Clip_Tracker.title, Clip_Tracker.video_name, Clip_Tracker.url).select_from(join(Game_Meta,Clip_Tracker)).where(and_(Clip_Tracker.published == None,  Clip_Tracker.mobiles_videos_processed == True)).order_by(Clip_Tracker.view_count.desc()).all()[:args.videos]:
+        for clip_id, game_title, clip_creator, console, clip_title, video_name, clip_url in session.query(Clip_Tracker.id, Game_Meta.game_name, Clip_Tracker.creator_name, Game_Meta.platform, Clip_Tracker.title, Clip_Tracker.video_name, Clip_Tracker.url).select_from(join(Game_Meta,Clip_Tracker)).where(and_(or_(Clip_Tracker.published == None, Clip_Tracker == PublishingStatus.d), Clip_Tracker.mobiles_videos_processed == True)).order_by(Clip_Tracker.view_count.desc()).all()[:args.videos]:
             # print(game_title, clip_creator, console, clip_title, video_name)
             try:
                 # First upload the full screen
@@ -87,17 +87,17 @@ def main(engine, service, args):
                         },
                         'notifySubscribers': True
                     }
-                mediaFile = MediaFileUpload(os.path.join(fullscreen_folder, video_name))
-                normal_response_upload = service.videos().insert(
-                    part='snippet,status',
-                    body=request_body,
-                    media_body=mediaFile
-                ).execute()
-                # pause after upload
-                print("Normal Upload complete", clip_title)
-                time.sleep(5)
-                playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%{game_title}%')).first()[0]
-                service.playlistItems().insert(part = "snippet", body = {"snippet": {'playlistId': playlistId, 'resourceId': {'videoId': normal_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
+                # mediaFile = MediaFileUpload(os.path.join(fullscreen_folder, video_name))
+                # normal_response_upload = service.videos().insert(
+                #     part='snippet,status',
+                #     body=request_body,
+                #     media_body=mediaFile
+                # ).execute()
+                # # pause after upload
+                # print("Normal Upload complete", clip_title)
+                # time.sleep(5)
+                # playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%{game_title}%')).first()[0]
+                # service.playlistItems().insert(part = "snippet", body = {"snippet": {'playlistId': playlistId, 'resourceId': {'videoId': normal_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
 
                 #upload the short
                 request_body['description'] = createDescription(game_title, os.environ['YT_CHANNEL_ID'], clip_creator, console, os.environ['CHANNEL'], clip_url, mode='shorts')
@@ -110,8 +110,9 @@ def main(engine, service, args):
                 time.sleep(5)
                 playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%short%')).first()[0]
                 service.playlistItems().insert(part = 'snippet', body = {"snippet": {'playlistId': playlistId, 'resourceId': {'videoId': mobile_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
-                session.execute(update(Clip_Tracker).where(Clip_Tracker.id == clip_id).values({'published' : PublishingStatus.f}))
+                session.execute(update(Clip_Tracker).where(Clip_Tracker.id == clip_id).values({'published' : PublishingStatus.m}))
                 session.commit()
+                print("Short Upload complete", clip_title)
 
             except Exception as e:
                 print("Upload failed", clip_title, e)
@@ -119,4 +120,4 @@ def main(engine, service, args):
 
 
 if __name__ == "__main__":
-    main(engine, service, args)
+    main(mysql_engine, service, args)

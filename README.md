@@ -40,7 +40,13 @@ python3 yt_daily_upload.py <int: default 1>
 - yt_videomaper.py - maps the videos and playlists which I've created in Youtube but have not mapped to my back end server.
 
 ```
-python3 yt_videomaperj.py
+python3 yt_videomaper.py
+```
+
+- yt_daily_balancer.py - Uploads videos that were "partially" uploaded to YouTube (partial upload constitutes upload which is Full and Short). Since Shorts performance is dramatically higher than Full Video performance
+
+```
+python3 yt_daily_balancer.py
 ```
 
 

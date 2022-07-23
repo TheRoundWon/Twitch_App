@@ -14,7 +14,7 @@ load_dotenv()
 
 # Initiate connection to SQL Database
 Base = declarative_base()
-engine = create_engine(f"mysql+mysqlconnector://{os.environ['USER_NAME']}:{os.environ['PASSWORD']}@{os.environ['PI']}/{os.environ['MAIN_DB']}" )
+mysql_engine = create_engine(f"mysql+mysqlconnector://{os.environ['USER_NAME']}:{os.environ['PASSWORD']}@{os.environ['PI']}/{os.environ['MAIN_DB']}" )
 
 
 
@@ -41,6 +41,11 @@ class PublishingStatus(enum.Enum):
     d = 2 # Desktop only
     f = 3 # Full complete
 
+class Clip_Merits(Base):
+    __tablename__ = 'clip_merits_tracker'
+    id = Column(String(255), ForeignKey('clip_tracker.id'), primary_key=True)
+    clips_previous_reward = Column(Integer)
+    yt_previous_reward = Column(Integer)
 
 class Clip_Tracker(Base):
     """
@@ -217,4 +222,4 @@ class Thumbnails(Base):
 
 if __name__ == "__main___":
     # Create all tables if TwitchMaster is run as standalone script
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(mysql_engine)
