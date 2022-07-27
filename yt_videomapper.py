@@ -11,7 +11,7 @@ youtube files from the sql database as well as updating the clip_tracker table (
 #Import necessary documents
 import argparse
 import http.client
-import httplib2
+# import httplib2
 import os
 import random
 import time
@@ -117,8 +117,7 @@ def main(engine, service):
 
             # Remove any videos that are in playlist mapper and Video_yt that are no longer in youtube
             video = session.query(yt_vid_pl_mapper).where(yt_vid_pl_mapper.c.yt_playlist_id == playlist['id']).filter(~yt_vid_pl_mapper.c.yt_video_id.in_([video['snippet']['resourceId']['videoId'] for video in playlist_Items['items']])).all()
-            if bool(video):
-                print(video)
+         
             for video in playlist_Items['items']:
                 try:
                     video = completeThumbnails(video)

@@ -8,7 +8,7 @@ have already been uploaded and whether all the videos are accounted for and corr
 #Import necessary documents
 import argparse
 import http.client
-import httplib2
+# import httplib2
 import os
 import random
 import time

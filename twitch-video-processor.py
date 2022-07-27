@@ -79,4 +79,4 @@ def main(args, engine):
                 print("Finished", fil)
 
 if __name__ == '__main__':
-    main(args, engine)
+    main(args, mysql_engine)
