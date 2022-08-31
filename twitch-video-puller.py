@@ -88,7 +88,7 @@ def main():
                     session.add(Clip_Tracker(**item))
                     session.commit()
                 else:
-                    session.execute(update(Clip_Tracker).where(Clip_Tracker.id == item['id']).values(view_count=item['view_count']))
+                    session.execute(update(Clip_Tracker).where(Clip_Tracker.id == item['id']).values(view_count=item['view_count'], title=item['title']))
                     session.commit()
         while bool(seed['pagination']): # Loop for remaining pages
             nextPage = seed['pagination']['cursor']
@@ -106,7 +106,7 @@ def main():
                     session.commit()
                     # print(item)
                 else:
-                    session.execute(update(Clip_Tracker).where(Clip_Tracker.id == item['id']).values(view_count=item['view_count']))
+                    session.execute(update(Clip_Tracker).where(Clip_Tracker.id == item['id']).values(view_count=item['view_count'], title=item['title']))
                     session.commit()
                     
             time.sleep(.5)

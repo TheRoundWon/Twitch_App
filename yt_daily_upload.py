@@ -75,7 +75,7 @@ def main(engine, service, args):
                 # First upload the full screen
                 request_body = {
                     'snippet': {
-                        'categoryI': 20,
+                        'categoryId': 20,
                         'title': " | ".join([console, game_title+" Gameplay", clip_title]),
                         'description': createDescription(game_title, os.environ['YT_CHANNEL_ID'], clip_creator, console, os.environ['CHANNEL'], clip_url),
                         'tags': ["Video Games", game_title, console, "Gaming"]

@@ -1,6 +1,7 @@
 """ The Following script contains the SQL Alchemy ORMs intended for creating tables in designaed MYSQL Database
 """
 
+from operator import truediv
 from sqlalchemy import *
 from sqlalchemy.orm import declarative_base, relationship, Session, aliased
 from datetime import datetime, timedelta, date
@@ -73,6 +74,44 @@ class Clip_Tracker(Base):
     full_screen_videos_processed = Column(BOOLEAN) # Deprecated
     mobiles_videos_processed = Column(Boolean)
 
+
+class Clips(Base):
+    """
+    ORM to  track status of clips which have been downloaded and processed for youtube
+    """
+    __tablename__ = "clips_tracker"
+    id = Column(String(255), primary_key=True)    
+    url = Column(String(255))    
+    embed_url = Column(String(255))     
+    broadcaster_id = Column(Integer, ForeignKey('broadcaster.user_id'))    
+    creator_id  = Column(Integer)   
+    creator_name = Column(String(100))    
+    video_id = Column(Integer, nullable=True)    
+    game_id  = Column(Integer, ForeignKey('game_meta.game_id'))
+    language  = Column(String(6))   
+    title  = Column(String(255))   
+    view_count = Column(BigInteger)
+    video_name = Column(String(255), nullable=True)
+    yt_filename = Column(String(255), nullable=True) # video_id which will link to youtube table
+    audio_filename = Column(String(255), nullable=True)
+    created_at = Column(DATETIME)
+    thumbnail_url = Column(String(255))    
+    duration = Column(FLOAT)
+    published = Column(Enum(PublishingStatus))
+    downloaded = Column(BOOLEAN)
+    audio_processed = Column(BOOLEAN) # Deprecated
+    mobiles_videos_processed = Column(Boolean)
+
+
+# class Clip_Speech(Base):
+#     __tablename__ = "clip_audio"
+#     idx = Column(BigInteger, primary_key=True)
+#     clip_id = Column(String(255), ForeignKey('clip_tracker.id'))
+#     speech = Column(String(255))
+#     time_block = Column(Integer)
+
+
+        
 # Table to handle Asssociation table between tags and streams
 tag_stream_association = Table(
     "tag_stream_association",
