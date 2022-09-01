@@ -74,6 +74,11 @@ class Clip_Tracker(Base):
     full_screen_videos_processed = Column(BOOLEAN) # Deprecated
     mobiles_videos_processed = Column(Boolean)
 
+class ClipStyle(enum.Enum):
+    funny = 0
+    info = 1
+    action = 2
+    skill = 3
 
 class Clips(Base):
     """
@@ -100,15 +105,16 @@ class Clips(Base):
     published = Column(Enum(PublishingStatus))
     downloaded = Column(BOOLEAN)
     audio_processed = Column(BOOLEAN) # Deprecated
+    clip_style = Column(Enum(ClipStyle), nullable=True)
     mobiles_videos_processed = Column(Boolean)
 
 
-# class Clip_Speech(Base):
-#     __tablename__ = "clip_audio"
-#     idx = Column(BigInteger, primary_key=True)
-#     clip_id = Column(String(255), ForeignKey('clip_tracker.id'))
-#     speech = Column(String(255))
-#     time_block = Column(Integer)
+class Clip_Speech(Base):
+    __tablename__ = "clip_audio"
+    idx = Column(BigInteger, primary_key=True)
+    clip_id = Column(String(255), ForeignKey('clip_tracker.id'))
+    speech = Column(String(255))
+    time_block = Column(String(5))
 
 
         
@@ -186,6 +192,7 @@ schema_mapper = {
 
 
 }
+
 
 
 class VideoStyle(enum.Enum):
