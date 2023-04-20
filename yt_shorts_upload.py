@@ -21,23 +21,22 @@ from sqlalchemy import *
 import datetime
 import re
 from StreamMaster import *
-
+from _utils import *
 
 load_dotenv()
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("videos", type=int, nargs = "?", const=1, default=1, help="number of videos to upload")
+parser.add_argument("-v","--videos", type=int, nargs = "?", const=1, default=1, help="number of videos to upload")
 
 args = parser.parse_args()
 
 
-engine = create_engine(f"mysql+mysqlconnector://{os.environ['USER_NAME']}:{os.environ['PASSWORD']}@{os.environ['PI']}/{os.environ['MAIN_DB']}" )
 
 
-clips_folder = os.environ['CLIPS_FOLDER']
+
 mobile_folder = os.environ['MOBILE_FOLDER']
-fullscreen_folder = os.environ['FULLSCREEN_FOLDER']
+highlights_folder = os.environ['PROCESSED_HIGHLIGHTS']
 ml_folder = os.environ['ML_FOLDER']
 assets = os.environ['ASSETS']
 
@@ -49,27 +48,11 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.upload", 'https://www.googlea
 
 # Code that initiates connection to the Google API - pulled from Google.py. Difference from using Google's built-in service is the following script creates convenience of storing pickle with necessary authentication
 service = Create_Service(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
-def createDescription(game_title, channel_id, clip_creator, console, twitch_channel, clip_url, tag_seed = ['videogames', 'followme', 'twitch', 'casualplay', 'TheRoundWon'], mode = None):
-    
-    if clip_creator == "TheRoundWon":
-        clip_creator = "TheSquareWon"
-    intro_string = "Follow me on Twitch for weekly live gameplay\n"
-    twitch_url = f"https://twitch.tv/{twitch_channel}\n"
-    clip_url = f"Check out the original clip on Twitch! {clip_url}\n\n"
-    tags = ["#"+game_title.replace(" ", "").replace("'", "")] + ['#'+sd for sd in tag_seed]  + ["#"+console]
-    if mode == "Shorts" or mode == "shorts":
-        tags = tags + ["#"+mode] 
-       
-    tagString = " ".join(tags)+"\n"
-    game_string = f"Game play Footage from {game_title}\n"
-    thank_string = f"Big Thanks to {clip_creator} for capturing the footage!\n\n"
-    subscribe_string = f"Subscribe to get notified of new videos:\nhttps://www.youtube.com/channel/{channel_id}?sub_confirmation=1"
-    return intro_string+twitch_url+clip_url+tagString+game_string+thank_string+subscribe_string
 
 
-def main(engine, service, args):
-    with Session(engine)as session:
-        for clip_id, game_title, clip_creator, console, clip_title, video_name, clip_url in session.query(Clip_Tracker.id, Game_Meta.game_name, Clip_Tracker.creator_name, Game_Meta.platform, Clip_Tracker.title, Clip_Tracker.video_name, Clip_Tracker.url).select_from(join(Game_Meta,Clip_Tracker)).where(and_(or_(Clip_Tracker.published == None, Clip_Tracker == PublishingStatus.d), Clip_Tracker.mobiles_videos_processed == True)).order_by(Clip_Tracker.view_count.desc()).all()[:args.videos]:
+def upload_yt_shorts(session_engine, service, args):
+    with Session(session_engine)as session:
+        for clip_id, game_title, clip_creator, console, clip_title, video_name, clip_url in session.query(TwitchVideos.id, Game_Meta.game_name, TwitchVideos.creator_name, Game_Meta.platform, TwitchVideos.title, TwitchVideos.video_name, TwitchVideos.url).select_from(join(Game_Meta,TwitchVideos)).where(and_(or_(TwitchVideos.published == None, TwitchVideos == PublishingStatus.d), TwitchVideos.mobiles_videos_processed == True, TwitchVideos.video_type == TwitchVideoStyle.CLIP)).order_by(TwitchVideos.view_count.desc()).all()[:args.videos]:
             # print(game_title, clip_creator, console, clip_title, video_name)
             try:
                 # First upload the full screen
@@ -110,7 +93,7 @@ def main(engine, service, args):
                 time.sleep(5)
                 playlistId = session.query(PlayList_yt.id).where(PlayList_yt.title.ilike(f'%short%')).first()[0]
                 service.playlistItems().insert(part = 'snippet', body = {"snippet": {'playlistId': playlistId, 'resourceId': {'videoId': mobile_response_upload.get('id'), 'kind': "youtube#video"}}}).execute()
-                session.execute(update(Clip_Tracker).where(Clip_Tracker.id == clip_id).values({'published' : PublishingStatus.m}))
+                session.execute(update(TwitchVideos).where(TwitchVideos.id == clip_id).values({'published' : PublishingStatus.m}))
                 session.commit()
                 print("Short Upload complete", clip_title)
 
@@ -120,4 +103,4 @@ def main(engine, service, args):
 
 
 if __name__ == "__main__":
-    main(mysql_engine, service, args)
+    upload_yt_shorts(mysql_engine, service, args)

@@ -1,4 +1,4 @@
-from yt_daily_upload import *
+from yt_shorts_upload import *
 
 
 

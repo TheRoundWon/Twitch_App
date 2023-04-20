@@ -1,7 +1,7 @@
 """
 The following script is designed to access the Youtube Data API and confirm which Youtube videos
 have already been uploaded and whether all the videos are accounted for and correctly mapped to the right playlists. The script also accounts for accidental deletions and removes deleted
-youtube files from the sql database as well as updating the clip_tracker table (or tries)
+youtube files from the sql database as well as updating the TwitchVideos table (or tries)
 
 """
 
@@ -24,11 +24,11 @@ from sqlalchemy import *
 import datetime
 import re
 from StreamMaster import *
+from _utils import *
 # Connecting to a rasberry pi sql data base, mysql was in this instance
 
 clips_folder = os.environ['CLIPS_FOLDER']
 mobile_folder = os.environ['MOBILE_FOLDER']
-fullscreen_folder = os.environ['FULLSCREEN_FOLDER']
 ml_folder = os.environ['ML_FOLDER']
 assets = os.environ['ASSETS']
 
@@ -51,7 +51,7 @@ def completeThumbnails(playlist, default_mode = 'default'):
 
 
 
-def main(engine, service):
+def yt_playlist_map(session_engine, service):
     # First pull all created playlists - videos should be mapped to playlists or a search will be required which is a more complicated operation
     playlists = service.playlists().list(part='id,snippet,status', channelId=os.environ['YT_CHANNEL_ID']).execute()
     nextPage = playlists['nextPageToken']
@@ -66,7 +66,7 @@ def main(engine, service):
     invers_mapper = {value: key for key, value in status_mapper.items()}
       
     shorts_pattern = f"[sS]hort" # check for YT short videos
-    with Session(engine) as session: # initialize session to sql using context manager
+    with Session(session_engine) as session: # initialize session to sql using context manager
         for playlist in playlists['items']: # loop through the differen playlists
             playlist = completeThumbnails(playlist)
             for key, thumbnail in playlist['snippet']['thumbnails'].items(): # first ensure that thumbnails are mapped in thumbnail table
@@ -115,7 +115,7 @@ def main(engine, service):
                     nextPage = None
                 playlist_Items['items'] = playlist_Items['items'] + seed_list['items']
 
-            # Remove any videos that are in playlist mapper and Video_yt that are no longer in youtube
+            # Remove any videos that are in playlist mapper and YT_Video that are no longer in youtube
             video = session.query(yt_vid_pl_mapper).where(yt_vid_pl_mapper.c.yt_playlist_id == playlist['id']).filter(~yt_vid_pl_mapper.c.yt_video_id.in_([video['snippet']['resourceId']['videoId'] for video in playlist_Items['items']])).all()
          
             for video in playlist_Items['items']:
@@ -139,7 +139,7 @@ def main(engine, service):
                  
                 
                     # find clip and original filename in clips database
-                    for clip_id, filename in session.query(Clip_Tracker.id, Clip_Tracker.video_name).where(Clip_Tracker.title == titleName).all():
+                    for clip_id, filename in session.query(TwitchVideos.id, TwitchVideos.video_name).where(TwitchVideos.title == titleName).all():
 
                         if not bool(clip_id):
                             print(title)
@@ -150,9 +150,9 @@ def main(engine, service):
                                     session.add(Thumbnails(asset=thumbnail['url'], width = thumbnail['width'], height=thumbnail['height']))
                                     session.commit()
                                 video['snippet']['thumbnails'][key]['id'] = session.query(Thumbnails.id).where(Thumbnails.asset == thumbnail['url']).first()[0]
-                            # VideoID is not in the Video_yt table - add it!    
-                            if not bool(session.query(Video_yt).where(Video_yt.id == video['snippet']['resourceId']['videoId']).first()):
-                                session.add( Video_yt(id = video['snippet']['resourceId']['videoId'], 
+                            # VideoID is not in the YT_Video table - add it!    
+                            if not bool(session.query(YT_Video).where(YT_Video.id == video['snippet']['resourceId']['videoId']).first()):
+                                session.add( YT_Video(id = video['snippet']['resourceId']['videoId'], 
                                 clip_id=clip_id, 
                                 title = title,
                                 filename = filename,
@@ -170,7 +170,7 @@ def main(engine, service):
                             # If it's already in there, update our record of current descriptiption / thumbnails.
                             else:
                                 session.execute(
-                                    update(Video_yt).where(Video_yt.id == video['snippet']['resourceId']['videoId']).values(
+                                    update(YT_Video).where(YT_Video.id == video['snippet']['resourceId']['videoId']).values(
                                         dict(
                                             clip_id=clip_id, 
                                             title = title,
@@ -196,24 +196,24 @@ def main(engine, service):
 
         # Next, check whether clips have been published by checking them vs the YT table
 
-        for clip_id in session.query(Clip_Tracker.id).all():
-            # query where we count number of videos with each clip_id
-            for title, style in session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).group_by(Video_yt.title).having(func.count(Video_yt.style) == 2).all():
-                if bool(title): # If there is a title for a query with 2 counts, then we update the video as f
-                    session.query(Clip_Tracker).where(Clip_Tracker.id == clip_id[0]).update({'published': PublishingStatus.f})
-                    session.commit()
-            # queries with 1 count, determine if mobile or short has been uploaded - design script to catch up videos with only one type of publishing complete.
-            for title, style in session.query(Video_yt.title, Video_yt.style).where(Video_yt.clip_id == clip_id[0]).group_by(Video_yt.title).having(func.count(Video_yt.style) == 1).all():
-                if bool(title) and style.name == "f":
-                    session.query(Clip_Tracker).where(Clip_Tracker.id == clip_id[0]).update({'published': PublishingStatus.d})
-                    session.commit()
-                else:
-                    session.query(Clip_Tracker).where(Clip_Tracker.id == clip_id[0]).update({'published': PublishingStatus.m})
-                    session.commit()
+        # for clip_id in session.query(TwitchVideos.id).all():
+        #     # query where we count number of videos with each clip_id
+        #     for title, style in session.query(YT_Video.title, YT_Video.style).where(YT_Video.clip_id == clip_id[0]).group_by(YT_Video.title).having(func.count(YT_Video.style) == 2).all():
+        #         if bool(title): # If there is a title for a query with 2 counts, then we update the video as f
+        #             session.query(TwitchVideos).where(TwitchVideos.id == clip_id[0]).update({'published': PublishingStatus.f})
+        #             session.commit()
+        #     # queries with 1 count, determine if mobile or short has been uploaded - design script to catch up videos with only one type of publishing complete.
+        #     for title, style in session.query(YT_Video.title, YT_Video.style).where(YT_Video.clip_id == clip_id[0]).group_by(YT_Video.title).having(func.count(YT_Video.style) == 1).all():
+        #         if bool(title) and style.name == "f":
+        #             session.query(TwitchVideos).where(TwitchVideos.id == clip_id[0]).update({'published': PublishingStatus.d})
+        #             session.commit()
+        #         else:
+        #             session.query(TwitchVideos).where(TwitchVideos.id == clip_id[0]).update({'published': PublishingStatus.m})
+        #             session.commit()
 
                 
 if __name__ == "__main__":
-    main(mysql_engine, service)
+    yt_playlist_map(mysql_engine, service)
     print('All Done!')
 
 
